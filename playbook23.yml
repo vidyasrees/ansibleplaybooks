@@ -1,0 +1,9 @@
+---
+- name: Restart apache2 and tomcat9
+  hosts: all
+  tasks:
+    - name: Restart apache, tomcat9
+      service:
+        name: ["apache2","tomcat9"]
+        state: restarted
+...
