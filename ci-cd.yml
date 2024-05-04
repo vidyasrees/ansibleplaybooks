@@ -1,6 +1,6 @@
 ---
-- name: Install required s/w's on devserver
-  hosts: devserver
+- name: Install required s/w's for ci-cd
+  hosts: jenkins
   tasks:
     - name: Install required s/w's
       apt:
@@ -8,39 +8,86 @@
         state: "{{item.b}}"
         update_cache: "{{item.c}}"
       with_items:
-        - {a: git,b: present,c: yes}
-        - {a: openjdk-11-jdk,b: present,c: no}
-        - {a: maven,b: present,c: no}
-- name: Install required s/w's on qaserver
-  hosts: qaserver
+        - {a: openjdk-11-jdk, b: present, c: yes}
+        - {a: git, b: present, c: no}
+        - {a: maven, b: present, c: no}
+- name: Install required s/w's for qa server
+  hosts: qa
   tasks:
-    - name: Install required s/w's
+    - name: Install s/w's
       apt:
         name: "{{item.a}}"
         state: "{{item.b}}"
         update_cache: "{{item.c}}"
       with_items:
-        - {a: git,b: present,c: yes}
-        - {a: openjdk-11-jdk,b: present,c: no}
-        - {a: tomcat9,b: present,c: no}
-        - {a: tomcat9-admin,b: present,c: no}
-- name: Install required s/w's on prodserver
-  hosts: prodserver
+        - {a: openjdk-11-jdk, b: present, c: yes}
+        - {a: git, b: present, c: no}
+        - {a: tomcat9, b: present, c: no}
+        - {a: tomcat9-admin, b: present, c: no}
+    - name: copy tomcat-users.xml
+      copy:
+        src: tomcat-users.xml
+        dest: /etc/tomcat9
+    - name: restart tomcat9
+      service:
+        name: tomcat9
+        state: restarted
+
+- name: Install required s/w's for prod server
+  hosts: prod
   tasks:
-    - name: Install required s/w's
+    - name: Install s/w's
       apt:
         name: "{{item.a}}"
         state: "{{item.b}}"
         update_cache: "{{item.c}}"
       with_items:
-        - {a: tomcat9,b: present,c: yes}
-        - {a: tomcat9-admin,b: present,c: no}
-- name: Continuous Download and Continuous Build
-  hosts: devserver
+        - {a: tomcat9, b: present, c: yes}
+        - {a: tomcat9-admin, b: present, c: no}
+    - name: copy tomcat-users.xml file
+      copy:
+        src: tomcat-users.xml
+        dest: /etc/tomcat9
+    - name: restart tomcat9
+      service:
+        name: tomcat9
+        state: restarted
+- name: continuous download and continuous build
+  hosts: jenkins
   tasks:
-    - name: Download dev code from github
+    - name: download code from github
       git:
-        repo: https://github.com/sudarshansw7/mymaven.git
+        repo: https://github.com/vidyasrees/maven.git
         dest: dev-git
-    - name: Create an artifact from the above code
+    - name: build an artifact from the downloaded code
       shell: cd dev-git;mvn package
+    - name: fetch artifact from jenkins to controller
+      fetch:
+        src: dev-git/webapp/target/webapp.war
+        dest: /tmp
+- name: continuous deployment and continuous testing
+  hosts: qa
+  tasks:
+    - name: deploy artifact
+      copy:
+        src: /tmp/172.31.21.215/dev-git/webapp/target/webapp.war
+        dest: /var/lib/tomcat9/webapps/testapp.war
+    - name: download selenium program
+      git:
+        repo: https://github.com/vidyasrees/functionaltesting.git
+        dest: test-git
+    - name: execute selenium program
+      shell: java -jar test-git/testing.jar
+- name: continuous delivery
+  hosts: prod
+  tasks:
+    - name: continuous delivery
+      copy:
+        src: /tmp/172.31.21.215/dev-git/webapp/target/webapp.war
+        dest: /var/lib/tomcat9/webapps/testapp.war
+
+
+
+      
+
+...
