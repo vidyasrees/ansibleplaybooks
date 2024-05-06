@@ -1,0 +1,40 @@
+---
+- name: configure apache/httpd based on OS platform
+  hosts: all
+  tasks:
+    - name: Install apache2 on ubuntu servers
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
+      when: ansible_distribution == "ubuntu"
+    - name: Install httpd on redhat servers
+      yum:
+        name: httpd
+        state: present
+        update_cache: yes
+      when: ansible_distribution == "Redhat"
+    - name: edit the index.html file
+      copy:
+        content: "welcome to vidya"
+        dest: /var/www/html/index.html
+    - name: Restart apache2 on ubuntu
+      service:
+        name: apache2
+        state: restarted
+      when: ansible_distribution == "ubuntu"
+    - name: restart https on RedHat
+      service:
+        name: httpd
+        state: restarted
+      when: ansible_distribution == "Redhat"
+    - name: check apache/https response on all servers
+      uri:
+        url: "{{item}}"
+        status_code: 200
+      with_items:
+        - http://172.31.28.153
+        - http://172.31.29.103
+        - http://172.31.16.247
+...
+
