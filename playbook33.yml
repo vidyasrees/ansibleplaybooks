@@ -1,0 +1,17 @@
+---
+- name: Login into dockerhub
+  hosts: 172.31.29.103
+  tasks:
+    - name: login
+      docker_login:
+        username: sreesv
+        password: vidya@123
+        
+    - name: upload the docker image
+      docker_image:
+        name: sreesv/nginx11
+        push: true
+
+...
+       
+      
